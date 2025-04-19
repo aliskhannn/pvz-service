@@ -13,7 +13,6 @@ import (
 type ProductUseCase interface {
 	AddProductToReception(ctx context.Context, pvzId uuid.UUID, product *domain.Product, user *domain.User) error
 	DeleteLatProductFromReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) error
-	GetAllProductsFromReception(ctx context.Context, receptionId uuid.UUID) ([]*domain.Product, error)
 }
 
 type productUseCase struct {
@@ -72,17 +71,4 @@ func (uc *productUseCase) DeleteLatProductFromReception(ctx context.Context, pvz
 	}
 
 	return nil
-}
-
-func (uc *productUseCase) GetAllProductsFromReception(ctx context.Context, receptionId uuid.UUID) ([]*domain.Product, error) {
-	if receptionId == uuid.Nil {
-		return nil, fmt.Errorf("reception id is required")
-	}
-
-	products, err := uc.repo.GetAllProductsFromReception(ctx, receptionId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get products from reception: %w", err)
-	}
-
-	return products, nil
 }

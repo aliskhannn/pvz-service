@@ -3,11 +3,12 @@ package jwt
 import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"os"
 	"time"
 )
 
-func CreateToken(userId string, role string) (string, error) {
+func CreateToken(userId uuid.UUID, role string) (string, error) {
 	claims := &Claims{
 		UserId: userId,
 		Role:   role,

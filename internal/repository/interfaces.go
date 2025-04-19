@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/aliskhannn/pvz-service/internal/domain"
 	"github.com/google/uuid"
+	"time"
 )
 
 type UserRepository interface {
@@ -13,8 +14,9 @@ type UserRepository interface {
 
 type PVZRepository interface {
 	CreatePVZ(ctx context.Context, pvz *domain.PVZ) error
-	GetAllPVZs(ctx context.Context) ([]*domain.PVZ, error)
-	GetPVZById(ctx context.Context, pvzId uuid.UUID) (*domain.PVZ, error)
+	GetAllPVZs(ctx context.Context, limit, offset int) ([]*domain.PVZ, error)
+	GetReceptionsByPVZId(ctx context.Context, pvzId uuid.UUID, from, to time.Time) ([]*domain.Reception, error)
+	GetAllProductsFromReception(ctx context.Context, receptionId uuid.UUID) ([]*domain.Product, error)
 }
 
 type ReceptionRepository interface {
@@ -26,5 +28,4 @@ type ReceptionRepository interface {
 type ProductRepository interface {
 	AddProductToReception(ctx context.Context, pvzId uuid.UUID, product *domain.Product) error
 	DeleteLatProductFromReception(ctx context.Context, pvzId uuid.UUID) error
-	GetAllProductsFromReception(ctx context.Context, receptionId uuid.UUID) ([]*domain.Product, error)
 }

@@ -7,13 +7,12 @@ import (
 	"github.com/aliskhannn/pvz-service/internal/constants"
 	"github.com/aliskhannn/pvz-service/internal/domain"
 	"github.com/aliskhannn/pvz-service/internal/repository"
-	"github.com/google/uuid"
+	"time"
 )
 
 type PvzUseCase interface {
 	CreatePVZ(ctx context.Context, pvz *domain.PVZ, user *domain.User) error
-	GetAllPVZs(ctx context.Context, user *domain.User) ([]*domain.PVZ, error)
-	GetPVZById(ctx context.Context, pvzId uuid.UUID) (*domain.PVZ, error)
+	GetAllPVZsWithReceptions(ctx context.Context, user *domain.User, from, to time.Time, limit, offset int) ([]*domain.PVZ, error)
 }
 
 type pvzUseCase struct {
@@ -49,7 +48,7 @@ func (uc *pvzUseCase) CreatePVZ(ctx context.Context, pvz *domain.PVZ, user *doma
 	return nil
 }
 
-func (uc *pvzUseCase) GetAllPVZs(ctx context.Context, user *domain.User) ([]*domain.PVZ, error) {
+func (uc *pvzUseCase) GetAllPVZsWithReceptions(ctx context.Context, user *domain.User, from, to time.Time, limit, offset int) ([]*domain.PVZ, error) {
 	if user == nil {
 		return nil, errors.New("user is required")
 	}
@@ -58,23 +57,28 @@ func (uc *pvzUseCase) GetAllPVZs(ctx context.Context, user *domain.User) ([]*dom
 		return nil, errors.New("only moderator or employee can get all PVZs")
 	}
 
-	pvzs, err := uc.repo.GetAllPVZs(ctx)
+	pvzs, err := uc.repo.GetAllPVZs(ctx, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pvzs: %w", err)
 	}
 
+	for _, pvz := range pvzs {
+		receptions, err := uc.repo.GetReceptionsByPVZId(ctx, pvz.Id, from, to)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get pvz receptions: %w", err)
+		}
+
+		for _, reception := range receptions {
+			products, err := uc.repo.GetAllProductsFromReception(ctx, reception.Id)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get pvz products: %w", err)
+			}
+
+			reception.Products = products
+		}
+
+		pvz.Receptions = receptions
+	}
+
 	return pvzs, nil
-}
-
-func (uc *pvzUseCase) GetPVZById(ctx context.Context, pvzId uuid.UUID) (*domain.PVZ, error) {
-	if pvzId == uuid.Nil {
-		return nil, errors.New("pvz id is required")
-	}
-
-	pvz, err := uc.repo.GetPVZById(ctx, pvzId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get pvz: %w", err)
-	}
-
-	return pvz, nil
 }

@@ -77,31 +77,3 @@ func (r *productRepository) DeleteLatProductFromReception(ctx context.Context, p
 
 	return nil
 }
-
-func (r *productRepository) GetAllProductsFromReception(ctx context.Context, receptionId uuid.UUID) ([]*domain.Product, error) {
-	products := make([]*domain.Product, 0)
-
-	query := `SELECT id, type, reception_id, date_time FROM products WHERE reception_id = $1`
-
-	rows, err := r.db.Query(ctx, query, receptionId)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching products: %w", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var product domain.Product
-		err = rows.Scan(&product.Id, &product.Type, &product.ReceptionId, &product.DateTime)
-		if err != nil {
-			return nil, fmt.Errorf("products could not be retrieved: %w", err)
-		}
-
-		products = append(products, &product)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating over rows: %w", err)
-	}
-
-	return products, nil
-}

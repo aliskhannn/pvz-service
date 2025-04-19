@@ -32,7 +32,7 @@ func (uc *authUseCase) DummyLogin(ctx context.Context, role string) (string, err
 		return "", errors.New("invalid role")
 	}
 
-	userId := uuid.New().String()
+	userId := uuid.New()
 	token, err := jwt.CreateToken(userId, role)
 	if err != nil {
 		return "", fmt.Errorf("token creation failed: %w", err)
@@ -56,7 +56,7 @@ func (uc *authUseCase) Login(ctx context.Context, email string, password string)
 		return "", errors.New("invalid email or password")
 	}
 
-	token, err := jwt.CreateToken(user.Id.String(), user.Role)
+	token, err := jwt.CreateToken(user.Id, user.Role)
 	if err != nil {
 		return "", fmt.Errorf("token creation failed: %w", err)
 	}
