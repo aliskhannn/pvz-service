@@ -18,7 +18,7 @@ type PVZRepository interface {
 }
 
 type ReceptionRepository interface {
-	Create(ctx context.Context, reception *domain.Reception) error
+	CreateReception(ctx context.Context, reception *domain.Reception) error
 	CloseLastReception(ctx context.Context, pvzId uuid.UUID) error
 	HasOpenReception(ctx context.Context, pvzId uuid.UUID) (bool, error)
 }

@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/aliskhannn/pvz-service/internal/domain"
 	"github.com/aliskhannn/pvz-service/internal/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,14 +20,6 @@ func NewPVZRepository(db *pgxpool.Pool) repository.PVZRepository {
 }
 
 func (r *pvzRepository) CreatePVZ(ctx context.Context, pvz *domain.PVZ) error {
-	if pvz.City == "" {
-		return fmt.Errorf("city is required")
-	}
-
-	if pvz.City != "Москва" && pvz.City != "Санкт-Петербург" && pvz.City != "Казань" {
-		return fmt.Errorf("city must be one of Москва, Санкт-Петербург or Казань")
-	}
-
 	query := `INSERT INTO pvz (city) VALUES ($1)`
 	_, err := r.db.Exec(ctx, query, pvz.City)
 	if err != nil {
@@ -63,16 +57,16 @@ func (r *pvzRepository) GetAllPVZs(ctx context.Context) ([]*domain.PVZ, error) {
 }
 
 func (r *pvzRepository) GetPVZById(ctx context.Context, pvzId uuid.UUID) (*domain.PVZ, error) {
-	if pvzId == uuid.Nil {
-		return nil, fmt.Errorf("pvz id is required")
-	}
-
 	var pvz domain.PVZ
 
 	query := `SELECT id, registration_date, city FROM pvz WHERE id = $1`
 	err := r.db.QueryRow(ctx, query, pvzId).Scan(&pvz.Id, &pvz.RegistrationDate, &pvz.City)
 	if err != nil {
 		return nil, fmt.Errorf("pvz could not be retrieved: %w", err)
+	}
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("pvz not found")
 	}
 
 	return &pvz, nil

@@ -20,14 +20,6 @@ func NewProductRepository(db *pgxpool.Pool) repository.ProductRepository {
 }
 
 func (r *productRepository) AddProductToReception(ctx context.Context, pvzId uuid.UUID, product *domain.Product) error {
-	if pvzId == uuid.Nil || product.Type == "" || product.ReceptionId == uuid.Nil {
-		return fmt.Errorf("pvz id, product type and reception id are required")
-	}
-
-	if product.Type != "электроника" && product.Type != "одежда" && product.Type != "обувь" {
-		return fmt.Errorf("city must be one of электроника, одежда or обувь")
-	}
-
 	var receptionId uuid.UUID
 	query := `
 		SELECT id FROM receptions
@@ -59,10 +51,6 @@ func (r *productRepository) AddProductToReception(ctx context.Context, pvzId uui
 }
 
 func (r *productRepository) DeleteLatProductFromReception(ctx context.Context, pvzId uuid.UUID) error {
-	if pvzId == uuid.Nil {
-		return fmt.Errorf("pvz id is required")
-	}
-
 	query := `
 		DELETE FROM products
 		WHERE id (
@@ -91,10 +79,6 @@ func (r *productRepository) DeleteLatProductFromReception(ctx context.Context, p
 }
 
 func (r *productRepository) GetAllProductsFromReception(ctx context.Context, receptionId uuid.UUID) ([]*domain.Product, error) {
-	if receptionId == uuid.Nil {
-		return nil, fmt.Errorf("reception id is required")
-	}
-
 	products := make([]*domain.Product, 0)
 
 	query := `SELECT id, type, reception_id, date_time FROM products WHERE reception_id = $1`
