@@ -2,10 +2,9 @@ package usecase
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/aliskhannn/pvz-service/internal/constants"
 	"github.com/aliskhannn/pvz-service/internal/domain"
+	appErr "github.com/aliskhannn/pvz-service/internal/errors"
 	"github.com/aliskhannn/pvz-service/internal/repository"
 	"time"
 )
@@ -25,24 +24,24 @@ func NewPvzUseCase(repo repository.PVZRepository) PvzUseCase {
 
 func (uc *pvzUseCase) CreatePVZ(ctx context.Context, pvz *domain.PVZ, user *domain.User) error {
 	if user == nil {
-		return errors.New("user is required")
+		return appErr.ErrUserRequired
 	}
 
 	if user.Role != constants.UserRoleModerator {
-		return errors.New("only moderator can create PVZ")
+		return appErr.ErrOnlyModeratorAllowed
 	}
 
 	if pvz == nil {
-		return errors.New("pvz is nil")
+		return appErr.ErrPVZIdRequired
 	}
 
 	if pvz.City != constants.PVZCityMoscow && pvz.City != constants.PVZCitySaintPetersburg && pvz.City != constants.PVZCityKazan {
-		return fmt.Errorf("city must be one of %s, %s or %s", constants.PVZCityMoscow, constants.PVZCitySaintPetersburg, constants.PVZCityKazan)
+		return appErr.ErrInvalidCity
 	}
 
 	err := uc.repo.CreatePVZ(ctx, pvz)
 	if err != nil {
-		return fmt.Errorf("failed to create PVZ: %w", err)
+		return appErr.ErrCreatingPVZ
 	}
 
 	return nil
@@ -50,28 +49,28 @@ func (uc *pvzUseCase) CreatePVZ(ctx context.Context, pvz *domain.PVZ, user *doma
 
 func (uc *pvzUseCase) GetAllPVZsWithReceptions(ctx context.Context, user *domain.User, startDate, endDate time.Time, offset, limit int) ([]*domain.PVZ, error) {
 	if user == nil {
-		return nil, errors.New("user is required")
+		return nil, appErr.ErrUserRequired
 	}
 
 	if user.Role != constants.UserRoleModerator && user.Role != constants.UserRoleEmployee {
-		return nil, errors.New("only moderator or employee can get all PVZs")
+		return nil, appErr.ErrInvalidRole
 	}
 
 	pvzs, err := uc.repo.GetAllPVZs(ctx, offset, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pvzs: %w", err)
+		return nil, appErr.ErrGettingPVZs
 	}
 
 	for _, pvz := range pvzs {
 		receptions, err := uc.repo.GetReceptionsByPVZId(ctx, pvz.Id, startDate, endDate)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get pvz receptions: %w", err)
+			return nil, appErr.ErrGettingReceptions
 		}
 
 		for _, reception := range receptions {
 			products, err := uc.repo.GetAllProductsFromReception(ctx, reception.Id)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get pvz products: %w", err)
+				return nil, appErr.ErrGettingProducts
 			}
 
 			reception.Products = products

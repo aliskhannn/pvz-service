@@ -2,10 +2,9 @@ package usecase
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/aliskhannn/pvz-service/internal/constants"
 	"github.com/aliskhannn/pvz-service/internal/domain"
+	appErr "github.com/aliskhannn/pvz-service/internal/errors"
 	"github.com/aliskhannn/pvz-service/internal/repository"
 	"github.com/google/uuid"
 )
@@ -25,24 +24,24 @@ func NewProductUseCase(repo repository.ProductRepository) ProductUseCase {
 
 func (uc *productUseCase) AddProductToReception(ctx context.Context, pvzId uuid.UUID, productType string, user *domain.User) error {
 	if user == nil {
-		return errors.New("user is required")
+		return appErr.ErrUserRequired
 	}
 
 	if user.Role != constants.UserRoleEmployee {
-		return errors.New("only employee can add product to reception")
+		return appErr.ErrOnlyEmployeeAllowed
 	}
 
 	if pvzId == uuid.Nil || productType == "" {
-		return fmt.Errorf("pvz id and product type id are required")
+		return appErr.ErrPVZIdAndProductTypeRequired
 	}
 
 	if productType != constants.ProductTypeElectronics && productType != constants.ProductsTypeCloth && productType != constants.ProductTypeShoes {
-		return fmt.Errorf("product type must be one of %s, %s or %s", constants.ProductTypeElectronics, constants.ProductsTypeCloth, constants.ProductTypeShoes)
+		return appErr.ErrInvalidProductType
 	}
 
 	err := uc.repo.AddProductToReception(ctx, pvzId, productType)
 	if err != nil {
-		return fmt.Errorf("failed to add product to reception: %w", err)
+		return appErr.ErrCreatingProduct
 	}
 
 	return nil
@@ -50,20 +49,20 @@ func (uc *productUseCase) AddProductToReception(ctx context.Context, pvzId uuid.
 
 func (uc *productUseCase) DeleteLatProductFromReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) error {
 	if user == nil {
-		return errors.New("user is required")
+		return appErr.ErrUserRequired
 	}
 
 	if user.Role != constants.UserRoleEmployee {
-		return errors.New("only employee can delete product from reception")
+		return appErr.ErrOnlyEmployeeAllowed
 	}
 
 	if pvzId == uuid.Nil {
-		return fmt.Errorf("pvz id is required")
+		return appErr.ErrPVZIdRequired
 	}
 
 	err := uc.repo.DeleteLatProductFromReception(ctx, pvzId)
 	if err != nil {
-		return fmt.Errorf("failed to delete latitude from reception: %w", err)
+		return appErr.ErrDeletingLastProduct
 	}
 
 	return nil

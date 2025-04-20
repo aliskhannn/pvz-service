@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"github.com/aliskhannn/pvz-service/internal/delivery/http/response"
 	"github.com/aliskhannn/pvz-service/internal/domain"
 	"github.com/aliskhannn/pvz-service/internal/middleware"
 	"github.com/aliskhannn/pvz-service/internal/usecase"
@@ -22,41 +23,47 @@ func NewPVZHandler(pvzUseCase usecase.PvzUseCase) *PVZHandler {
 
 func (h *PVZHandler) CreatePVZ(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		response.WriteJSONError(w, http.StatusMethodNotAllowed, "Method Not Allowed")
 		return
 	}
 
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok || user == nil {
-		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		response.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized User")
+		return
+	}
+
+	if user.Role != "moderator" {
+		response.WriteJSONError(w, http.StatusForbidden, "access denied")
 		return
 	}
 
 	var pvz domain.PVZ
 	err := json.NewDecoder(r.Body).Decode(&pvz)
 	if err != nil {
-		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		response.WriteJSONError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	err = h.pvzUseCase.CreatePVZ(r.Context(), &pvz, user)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		status := response.MapErrorToStatusCode(err)
+		response.WriteJSONError(w, status, err.Error())
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	response.WriteJSONResponse(w, http.StatusCreated, pvz)
 }
 
 func (h *PVZHandler) GetAllPVZsWithReceptions(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		response.WriteJSONError(w, http.StatusMethodNotAllowed, "Method Not Allowed")
 		return
 	}
 
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok || user == nil {
-		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		response.WriteJSONError(w, http.StatusUnauthorized, "Unauthorized User")
 		return
 	}
 
@@ -71,7 +78,7 @@ func (h *PVZHandler) GetAllPVZsWithReceptions(w http.ResponseWriter, r *http.Req
 	if startDateStr != "" {
 		startDate, err = time.Parse(time.DateOnly, startDateStr)
 		if err != nil {
-			http.Error(w, "invalid 'startDate' date, use YYYY-MM-DD", http.StatusBadRequest)
+			response.WriteJSONError(w, http.StatusBadRequest, "invalid 'startDate' date, use YYYY-MM-DD")
 			return
 		}
 	} else {
@@ -81,7 +88,7 @@ func (h *PVZHandler) GetAllPVZsWithReceptions(w http.ResponseWriter, r *http.Req
 	if endDateStr != "" {
 		endDate, err = time.Parse(time.DateOnly, endDateStr)
 		if err != nil {
-			http.Error(w, "invalid 'endDate' date, use YYYY-MM-DD", http.StatusBadRequest)
+			response.WriteJSONError(w, http.StatusBadRequest, "invalid 'endDate' date, use YYYY-MM-DD")
 			return
 		}
 	} else {
@@ -97,7 +104,7 @@ func (h *PVZHandler) GetAllPVZsWithReceptions(w http.ResponseWriter, r *http.Req
 	if pageStr != "" {
 		page, err = strconv.Atoi(pageStr)
 		if err != nil || page < 0 {
-			http.Error(w, "invalid offset", http.StatusBadRequest)
+			response.WriteJSONError(w, http.StatusBadRequest, "invalid offset")
 			return
 		}
 	}
@@ -105,7 +112,7 @@ func (h *PVZHandler) GetAllPVZsWithReceptions(w http.ResponseWriter, r *http.Req
 	if limitStr != "" {
 		limit, err = strconv.Atoi(limitStr)
 		if err != nil || limit <= 0 {
-			http.Error(w, "invalid limit", http.StatusBadRequest)
+			response.WriteJSONError(w, http.StatusBadRequest, "invalid limit")
 			return
 		}
 	}
@@ -114,11 +121,10 @@ func (h *PVZHandler) GetAllPVZsWithReceptions(w http.ResponseWriter, r *http.Req
 
 	pvzs, err := h.pvzUseCase.GetAllPVZsWithReceptions(r.Context(), user, startDate, endDate, offset, limit)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		status := response.MapErrorToStatusCode(err)
+		response.WriteJSONError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(pvzs)
+	response.WriteJSONResponse(w, http.StatusOK, pvzs)
 }

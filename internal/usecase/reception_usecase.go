@@ -2,17 +2,16 @@ package usecase
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/aliskhannn/pvz-service/internal/constants"
 	"github.com/aliskhannn/pvz-service/internal/domain"
+	appErr "github.com/aliskhannn/pvz-service/internal/errors"
 	"github.com/aliskhannn/pvz-service/internal/repository"
 	"github.com/google/uuid"
 	"time"
 )
 
 type ReceptionUseCase interface {
-	CreateReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) error
+	CreateReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) (*domain.Reception, error)
 	CloseLastReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) error
 }
 
@@ -24,26 +23,26 @@ func NewReceptionUseCase(repo repository.ReceptionRepository) ReceptionUseCase {
 	return &receptionUseCase{repo: repo}
 }
 
-func (uc *receptionUseCase) CreateReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) error {
+func (uc *receptionUseCase) CreateReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) (*domain.Reception, error) {
 	if user == nil {
-		return errors.New("user is required")
+		return nil, appErr.ErrUserRequired
 	}
 
 	if user.Role != constants.UserRoleEmployee {
-		return errors.New("only employee can create a reception")
+		return nil, appErr.ErrOnlyEmployeeAllowed
 	}
 
 	if pvzId == uuid.Nil {
-		return fmt.Errorf("pvz id is required")
+		return nil, appErr.ErrPVZIdRequired
 	}
 
 	hasOpen, err := uc.repo.HasOpenReception(ctx, pvzId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if hasOpen {
-		return errors.New("pvz already has an open reception")
+		return nil, appErr.ErrPVZHasOpenReception
 	}
 
 	reception := &domain.Reception{
@@ -54,28 +53,28 @@ func (uc *receptionUseCase) CreateReception(ctx context.Context, pvzId uuid.UUID
 
 	err = uc.repo.CreateReception(ctx, reception)
 	if err != nil {
-		return fmt.Errorf("failed to create reception: %w", err)
+		return nil, appErr.ErrCreatingReception
 	}
 
-	return nil
+	return reception, nil
 }
 
 func (uc *receptionUseCase) CloseLastReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) error {
 	if user == nil {
-		return errors.New("user is required")
+		return appErr.ErrUserRequired
 	}
 
 	if user.Role != constants.UserRoleEmployee {
-		return errors.New("only employee can delete product from reception")
+		return appErr.ErrOnlyEmployeeAllowed
 	}
 
 	if pvzId == uuid.Nil {
-		return fmt.Errorf("pvz id is required")
+		return appErr.ErrPVZIdRequired
 	}
 
 	err := uc.repo.CloseLastReception(ctx, pvzId)
 	if err != nil {
-		return fmt.Errorf("failed to close last reception: %w", err)
+		return appErr.ErrClosingLastReception
 	}
 
 	return nil

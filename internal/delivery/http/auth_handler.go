@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"github.com/aliskhannn/pvz-service/internal/delivery/http/response"
 	"github.com/aliskhannn/pvz-service/internal/domain"
 	"github.com/aliskhannn/pvz-service/internal/usecase"
 	"net/http"
@@ -26,86 +27,90 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type TokenResponse struct {
+	Token string `json:"token"`
+}
+
 func (h *AuthHandler) DummyLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		response.WriteJSONError(w, http.StatusMethodNotAllowed, "Method Not Allowed")
 		return
 	}
 
 	var req DummyLoginRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		response.WriteJSONError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	if req.Role == "" {
-		http.Error(w, "role is required", http.StatusBadRequest)
+		response.WriteJSONError(w, http.StatusBadRequest, "role is required")
+		return
 	}
 
 	token, err := h.authUseCase.DummyLogin(r.Context(), req.Role)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		status := response.MapErrorToStatusCode(err)
+		response.WriteJSONError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	response.WriteJSONResponse(w, http.StatusOK, TokenResponse{Token: token})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		response.WriteJSONError(w, http.StatusMethodNotAllowed, "Method Not Allowed")
 		return
 	}
 
 	var loginReq LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&loginReq)
 	if err != nil {
-		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		response.WriteJSONError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	if loginReq.Email == "" || loginReq.Password == "" {
-		http.Error(w, "email and password are required", http.StatusBadRequest)
+		response.WriteJSONError(w, http.StatusBadRequest, "email and password are required")
 		return
 	}
 
 	token, err := h.authUseCase.Login(r.Context(), loginReq.Email, loginReq.Password)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		status := response.MapErrorToStatusCode(err)
+		response.WriteJSONError(w, status, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"token": token})
+	response.WriteJSONResponse(w, http.StatusOK, TokenResponse{Token: token})
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		response.WriteJSONError(w, http.StatusMethodNotAllowed, "Method Not Allowed")
 		return
 	}
 
 	var user domain.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		response.WriteJSONError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	if user.Email == "" || user.Password == "" || user.Role == "" {
-		http.Error(w, "email? password and role are required", http.StatusBadRequest)
+		response.WriteJSONError(w, http.StatusBadRequest, "email, password and role are required")
 		return
 	}
 
 	err = h.authUseCase.Register(r.Context(), &user)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		status := response.MapErrorToStatusCode(err)
+		response.WriteJSONError(w, status, err.Error())
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	response.WriteJSONResponse(w, http.StatusCreated, user.Email)
 }

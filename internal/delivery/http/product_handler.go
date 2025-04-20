@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"github.com/aliskhannn/pvz-service/internal/delivery/http/response"
 	"github.com/aliskhannn/pvz-service/internal/middleware"
 	"github.com/aliskhannn/pvz-service/internal/usecase"
 	"github.com/go-chi/chi/v5"
@@ -44,7 +45,8 @@ func (h *ProductHandler) AddProductToReception(w http.ResponseWriter, r *http.Re
 
 	err = h.productUseCase.AddProductToReception(r.Context(), req.PVZId, req.Type, user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		status := response.MapErrorToStatusCode(err)
+		response.WriteJSONError(w, status, err.Error())
 		return
 	}
 
@@ -72,7 +74,8 @@ func (h *ProductHandler) DeleteLatProductFromReception(w http.ResponseWriter, r 
 
 	err = h.productUseCase.DeleteLatProductFromReception(r.Context(), id, user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		status := response.MapErrorToStatusCode(err)
+		response.WriteJSONError(w, status, err.Error())
 		return
 	}
 
