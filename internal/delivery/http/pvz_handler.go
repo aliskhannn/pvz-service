@@ -62,37 +62,45 @@ func (h *PVZHandler) GetAllPVZsWithReceptions(w http.ResponseWriter, r *http.Req
 
 	query := r.URL.Query()
 
-	fromStr := query.Get("from")
-	toStr := query.Get("to")
+	startDateStr := query.Get("startDate")
+	endDateStr := query.Get("endDate")
 
-	var from, to time.Time
+	var startDate, endDate time.Time
 	var err error
 
-	if fromStr != "" {
-		from, err = time.Parse(time.DateOnly, fromStr)
+	if startDateStr != "" {
+		startDate, err = time.Parse(time.DateOnly, startDateStr)
 		if err != nil {
-			http.Error(w, "invalid 'from' date, use YYYY-MM-DD", http.StatusBadRequest)
+			http.Error(w, "invalid 'startDate' date, use YYYY-MM-DD", http.StatusBadRequest)
 			return
 		}
 	} else {
-		from = time.Time{}
+		startDate = time.Time{}
 	}
 
-	if toStr != "" {
-		to, err = time.Parse(time.DateOnly, toStr)
+	if endDateStr != "" {
+		endDate, err = time.Parse(time.DateOnly, endDateStr)
 		if err != nil {
-			http.Error(w, "invalid 'to' date, use YYYY-MM-DD", http.StatusBadRequest)
+			http.Error(w, "invalid 'endDate' date, use YYYY-MM-DD", http.StatusBadRequest)
 			return
 		}
 	} else {
-		to = time.Time{}
+		endDate = time.Time{}
 	}
 
+	pageStr := query.Get("page")
 	limitStr := query.Get("limit")
-	offsetStr := query.Get("offset")
 
+	page := 0
 	limit := 10
-	offset := 0
+
+	if pageStr != "" {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil || page < 0 {
+			http.Error(w, "invalid offset", http.StatusBadRequest)
+			return
+		}
+	}
 
 	if limitStr != "" {
 		limit, err = strconv.Atoi(limitStr)
@@ -102,15 +110,9 @@ func (h *PVZHandler) GetAllPVZsWithReceptions(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	if offsetStr != "" {
-		offset, err = strconv.Atoi(offsetStr)
-		if err != nil || offset < 0 {
-			http.Error(w, "invalid offset", http.StatusBadRequest)
-			return
-		}
-	}
+	offset := (page - 1) * limit
 
-	pvzs, err := h.pvzUseCase.GetAllPVZsWithReceptions(r.Context(), user, from, to, limit, offset)
+	pvzs, err := h.pvzUseCase.GetAllPVZsWithReceptions(r.Context(), user, startDate, endDate, offset, limit)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

@@ -1,0 +1,11 @@
+server:
+  httpPort: ":8080"
+  grpcPort: ":3000"
+  metricsPort: ":9000"
+  mode: "debug"
+
+jwt:
+  ttl: "2h"
+
+database:
+  sslmode: "disable"

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"github.com/aliskhannn/pvz-service/internal/middleware"
 	"github.com/aliskhannn/pvz-service/internal/usecase"
 	"github.com/go-chi/chi/v5"
@@ -18,6 +19,10 @@ func NewReceptionHandler(receptionUseCase usecase.ReceptionUseCase) *ReceptionHa
 	}
 }
 
+type CreateRequest struct {
+	PVZId uuid.UUID `json:"pvz_id"`
+}
+
 func (h *ReceptionHandler) CreateReception(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
@@ -30,14 +35,13 @@ func (h *ReceptionHandler) CreateReception(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	pvzIdParam := chi.URLParam(r, "pvzId")
-	id, err := uuid.Parse(pvzIdParam)
+	var req CreateRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
 	}
 
-	err = h.receptionUseCase.CreateReception(r.Context(), id, user)
+	err = h.receptionUseCase.CreateReception(r.Context(), req.PVZId, user)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}

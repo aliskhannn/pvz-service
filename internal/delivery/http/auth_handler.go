@@ -45,7 +45,7 @@ func (h *AuthHandler) DummyLogin(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.authUseCase.DummyLogin(r.Context(), req.Role)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

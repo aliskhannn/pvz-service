@@ -14,8 +14,8 @@ type UserRepository interface {
 
 type PVZRepository interface {
 	CreatePVZ(ctx context.Context, pvz *domain.PVZ) error
-	GetAllPVZs(ctx context.Context, limit, offset int) ([]*domain.PVZ, error)
-	GetReceptionsByPVZId(ctx context.Context, pvzId uuid.UUID, from, to time.Time) ([]*domain.Reception, error)
+	GetAllPVZs(ctx context.Context, offset, limit int) ([]*domain.PVZ, error)
+	GetReceptionsByPVZId(ctx context.Context, pvzId uuid.UUID, startDate, endDate time.Time) ([]*domain.Reception, error)
 	GetAllProductsFromReception(ctx context.Context, receptionId uuid.UUID) ([]*domain.Product, error)
 }
 
@@ -26,6 +26,6 @@ type ReceptionRepository interface {
 }
 
 type ProductRepository interface {
-	AddProductToReception(ctx context.Context, pvzId uuid.UUID, product *domain.Product) error
+	AddProductToReception(ctx context.Context, pvzId uuid.UUID, productType string) error
 	DeleteLatProductFromReception(ctx context.Context, pvzId uuid.UUID) error
 }

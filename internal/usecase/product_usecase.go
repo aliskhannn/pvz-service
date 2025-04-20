@@ -11,7 +11,7 @@ import (
 )
 
 type ProductUseCase interface {
-	AddProductToReception(ctx context.Context, pvzId uuid.UUID, product *domain.Product, user *domain.User) error
+	AddProductToReception(ctx context.Context, pvzId uuid.UUID, productType string, user *domain.User) error
 	DeleteLatProductFromReception(ctx context.Context, pvzId uuid.UUID, user *domain.User) error
 }
 
@@ -23,7 +23,7 @@ func NewProductUseCase(repo repository.ProductRepository) ProductUseCase {
 	return &productUseCase{repo: repo}
 }
 
-func (uc *productUseCase) AddProductToReception(ctx context.Context, pvzId uuid.UUID, product *domain.Product, user *domain.User) error {
+func (uc *productUseCase) AddProductToReception(ctx context.Context, pvzId uuid.UUID, productType string, user *domain.User) error {
 	if user == nil {
 		return errors.New("user is required")
 	}
@@ -32,19 +32,15 @@ func (uc *productUseCase) AddProductToReception(ctx context.Context, pvzId uuid.
 		return errors.New("only employee can add product to reception")
 	}
 
-	if product == nil {
-		return fmt.Errorf("product is nil")
+	if pvzId == uuid.Nil || productType == "" {
+		return fmt.Errorf("pvz id and product type id are required")
 	}
 
-	if pvzId == uuid.Nil || product.Type == "" || product.ReceptionId == uuid.Nil {
-		return fmt.Errorf("pvz id, product type and reception id are required")
+	if productType != constants.ProductTypeElectronics && productType != constants.ProductsTypeCloth && productType != constants.ProductTypeShoes {
+		return fmt.Errorf("product type must be one of %s, %s or %s", constants.ProductTypeElectronics, constants.ProductsTypeCloth, constants.ProductTypeShoes)
 	}
 
-	if product.Type != constants.ProductTypeElectronics && product.Type != constants.ProductsTypeCloth && product.Type != constants.ProductTypeShoes {
-		return fmt.Errorf("city must be one of %s, %s or %s", constants.ProductTypeElectronics, constants.ProductsTypeCloth, constants.ProductTypeShoes)
-	}
-
-	err := uc.repo.AddProductToReception(ctx, pvzId, product)
+	err := uc.repo.AddProductToReception(ctx, pvzId, productType)
 	if err != nil {
 		return fmt.Errorf("failed to add product to reception: %w", err)
 	}

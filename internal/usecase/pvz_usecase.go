@@ -12,7 +12,7 @@ import (
 
 type PvzUseCase interface {
 	CreatePVZ(ctx context.Context, pvz *domain.PVZ, user *domain.User) error
-	GetAllPVZsWithReceptions(ctx context.Context, user *domain.User, from, to time.Time, limit, offset int) ([]*domain.PVZ, error)
+	GetAllPVZsWithReceptions(ctx context.Context, user *domain.User, startDate, endDate time.Time, page, limit int) ([]*domain.PVZ, error)
 }
 
 type pvzUseCase struct {
@@ -48,7 +48,7 @@ func (uc *pvzUseCase) CreatePVZ(ctx context.Context, pvz *domain.PVZ, user *doma
 	return nil
 }
 
-func (uc *pvzUseCase) GetAllPVZsWithReceptions(ctx context.Context, user *domain.User, from, to time.Time, limit, offset int) ([]*domain.PVZ, error) {
+func (uc *pvzUseCase) GetAllPVZsWithReceptions(ctx context.Context, user *domain.User, startDate, endDate time.Time, offset, limit int) ([]*domain.PVZ, error) {
 	if user == nil {
 		return nil, errors.New("user is required")
 	}
@@ -57,13 +57,13 @@ func (uc *pvzUseCase) GetAllPVZsWithReceptions(ctx context.Context, user *domain
 		return nil, errors.New("only moderator or employee can get all PVZs")
 	}
 
-	pvzs, err := uc.repo.GetAllPVZs(ctx, limit, offset)
+	pvzs, err := uc.repo.GetAllPVZs(ctx, offset, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pvzs: %w", err)
 	}
 
 	for _, pvz := range pvzs {
-		receptions, err := uc.repo.GetReceptionsByPVZId(ctx, pvz.Id, from, to)
+		receptions, err := uc.repo.GetReceptionsByPVZId(ctx, pvz.Id, startDate, endDate)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get pvz receptions: %w", err)
 		}

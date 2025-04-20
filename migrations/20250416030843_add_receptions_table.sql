@@ -3,7 +3,7 @@
 DO $$
 BEGIN
     IF NOT EXISTS (
-       SELECT 1 FROM pg_type WHERE typename = 'reception_status'
+       SELECT 1 FROM pg_type WHERE typname = 'reception_status'
     ) THEN
        CREATE TYPE reception_status AS ENUM ('in_progress', 'close');
     END IF;
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS receptions (
     date_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     pvz_id UUID NOT NULL REFERENCES pvz(id) ON DELETE CASCADE,
     status reception_status NOT NULL
-)
+);
 -- +goose StatementEnd
 
 -- +goose Down

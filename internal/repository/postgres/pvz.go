@@ -28,7 +28,7 @@ func (r *pvzRepository) CreatePVZ(ctx context.Context, pvz *domain.PVZ) error {
 	return nil
 }
 
-func (r *pvzRepository) GetAllPVZs(ctx context.Context, limit, offset int) ([]*domain.PVZ, error) {
+func (r *pvzRepository) GetAllPVZs(ctx context.Context, offset, limit int) ([]*domain.PVZ, error) {
 	query := `
 		SELECT id, registration_date, city 
 		FROM pvz
@@ -60,7 +60,7 @@ func (r *pvzRepository) GetAllPVZs(ctx context.Context, limit, offset int) ([]*d
 	return pvzs, nil
 }
 
-func (r *pvzRepository) GetReceptionsByPVZId(ctx context.Context, pvzId uuid.UUID, from, to time.Time) ([]*domain.Reception, error) {
+func (r *pvzRepository) GetReceptionsByPVZId(ctx context.Context, pvzId uuid.UUID, startDate, endDate time.Time) ([]*domain.Reception, error) {
 	query := `
 		SELECT id, pvz_id, date_time, status
 		FROM receptions
@@ -68,7 +68,7 @@ func (r *pvzRepository) GetReceptionsByPVZId(ctx context.Context, pvzId uuid.UUI
 		ORDER BY date_time DESC
 	`
 
-	rows, err := r.db.Query(ctx, query, pvzId, from, to)
+	rows, err := r.db.Query(ctx, query, pvzId, startDate, endDate)
 	if err != nil {
 		return nil, fmt.Errorf("reception could not be found: %w", err)
 	}

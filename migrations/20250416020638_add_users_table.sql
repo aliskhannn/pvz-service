@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users
     email    TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
     role     TEXT NOT NULL CHECK ( role IN ('employee', 'moderator') )
-)
+);
 -- +goose StatementEnd
 
 -- +goose Down

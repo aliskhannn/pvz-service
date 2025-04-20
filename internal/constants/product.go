@@ -2,6 +2,6 @@ package constants
 
 const (
 	ProductTypeElectronics = "электроника"
-	ProductsTypeCloth      = "Одежда"
-	ProductTypeShoes       = "Обувь"
+	ProductsTypeCloth      = "одежда"
+	ProductTypeShoes       = "обувь"
 )

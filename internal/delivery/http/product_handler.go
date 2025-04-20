@@ -2,7 +2,6 @@ package http
 
 import (
 	"encoding/json"
-	"github.com/aliskhannn/pvz-service/internal/domain"
 	"github.com/aliskhannn/pvz-service/internal/middleware"
 	"github.com/aliskhannn/pvz-service/internal/usecase"
 	"github.com/go-chi/chi/v5"
@@ -20,6 +19,11 @@ func NewProductHandler(productUseCase usecase.ProductUseCase) *ProductHandler {
 	}
 }
 
+type AddRequest struct {
+	PVZId uuid.UUID `json:"pvz_id"`
+	Type  string    `json:"type"`
+}
+
 func (h *ProductHandler) AddProductToReception(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
@@ -32,23 +36,15 @@ func (h *ProductHandler) AddProductToReception(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	pvzIdParam := chi.URLParam(r, "pvzId")
-	id, err := uuid.Parse(pvzIdParam)
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	var product *domain.Product
-	err = json.NewDecoder(r.Body).Decode(&product)
+	var req AddRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
-		return
 	}
 
-	err = h.productUseCase.AddProductToReception(r.Context(), id, product, user)
+	err = h.productUseCase.AddProductToReception(r.Context(), req.PVZId, req.Type, user)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -56,7 +52,7 @@ func (h *ProductHandler) AddProductToReception(w http.ResponseWriter, r *http.Re
 }
 
 func (h *ProductHandler) DeleteLatProductFromReception(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
+	if r.Method != http.MethodPost {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
@@ -76,7 +72,7 @@ func (h *ProductHandler) DeleteLatProductFromReception(w http.ResponseWriter, r 
 
 	err = h.productUseCase.DeleteLatProductFromReception(r.Context(), id, user)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
