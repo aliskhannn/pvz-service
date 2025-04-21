@@ -8,7 +8,19 @@ import (
 	"time"
 )
 
-func CreateToken(userId uuid.UUID, role string) (string, error) {
+type TokenGenerator struct{}
+
+func NewJWTGenerator() *TokenGenerator {
+	return &TokenGenerator{}
+}
+
+type Claims struct {
+	UserId uuid.UUID `json:"user_id"`
+	Role   string    `json:"role"`
+	jwt.RegisteredClaims
+}
+
+func (g *TokenGenerator) CreateToken(userId uuid.UUID, role string) (string, error) {
 	claims := &Claims{
 		UserId: userId,
 		Role:   role,
@@ -21,7 +33,7 @@ func CreateToken(userId uuid.UUID, role string) (string, error) {
 	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }
 
-func ValidateToken(tokenString string) (*Claims, error) {
+func (g *TokenGenerator) ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})

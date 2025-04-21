@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/aliskhannn/pvz-service/internal/auth"
 	"github.com/aliskhannn/pvz-service/internal/config"
 	"github.com/aliskhannn/pvz-service/internal/delivery/http"
+	"github.com/aliskhannn/pvz-service/internal/infrastructure/jwt"
 	"github.com/aliskhannn/pvz-service/internal/repository/postgres"
 	"github.com/aliskhannn/pvz-service/internal/usecase"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -38,17 +40,19 @@ func main() {
 	}
 	defer dbpool.Close()
 
+	tokens := jwt.NewJWTGenerator()
+	hasher := auth.NewBcryptHasher()
 	userRepo := postgres.NewUserRepository(dbpool)
 	pvzRepo := postgres.NewPVZRepository(dbpool)
 	receptionRepo := postgres.NewReceptionRepository(dbpool)
 	productRepo := postgres.NewProductRepository(dbpool)
 
-	authUC := usecase.NewAuthUseCase(userRepo)
+	authUC := usecase.NewAuthUseCase(userRepo, tokens, hasher)
 	pvzUC := usecase.NewPvzUseCase(pvzRepo)
 	receptionUC := usecase.NewReceptionUseCase(receptionRepo)
 	productUC := usecase.NewProductUseCase(productRepo)
 
-	router := http.NewRouter(authUC, pvzUC, receptionUC, productUC)
+	router := http.NewRouter(tokens, authUC, pvzUC, receptionUC, productUC)
 
 	log.Printf("HTTP server running on port %s", cfg.Server.HTTPPort)
 	http.Start(cfg, router)

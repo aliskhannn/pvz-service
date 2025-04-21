@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/aliskhannn/pvz-service/internal/auth"
-	"github.com/aliskhannn/pvz-service/internal/auth/jwt"
 	"github.com/aliskhannn/pvz-service/internal/constants"
 	"github.com/aliskhannn/pvz-service/internal/domain"
+	"github.com/aliskhannn/pvz-service/internal/domain/token"
 	appErr "github.com/aliskhannn/pvz-service/internal/errors"
 	"github.com/aliskhannn/pvz-service/internal/repository"
 	"github.com/google/uuid"
@@ -20,11 +20,17 @@ type AuthUseCase interface {
 }
 
 type authUseCase struct {
-	repo repository.UserRepository
+	repo   repository.UserRepository
+	tokens token.Generator
+	hasher auth.PasswordHasher
 }
 
-func NewAuthUseCase(repo repository.UserRepository) AuthUseCase {
-	return &authUseCase{repo: repo}
+func NewAuthUseCase(repo repository.UserRepository, tokens token.Generator, hasher auth.PasswordHasher) AuthUseCase {
+	return &authUseCase{
+		repo:   repo,
+		tokens: tokens,
+		hasher: hasher,
+	}
 }
 
 func (uc *authUseCase) DummyLogin(ctx context.Context, role string) (string, error) {
@@ -33,7 +39,7 @@ func (uc *authUseCase) DummyLogin(ctx context.Context, role string) (string, err
 	}
 
 	userId := uuid.New()
-	token, err := jwt.CreateToken(userId, role)
+	token, err := uc.tokens.CreateToken(userId, role)
 	if err != nil {
 		return "", appErr.ErrCreatingToken
 	}
@@ -51,12 +57,12 @@ func (uc *authUseCase) Login(ctx context.Context, email string, password string)
 		return "", appErr.ErrGettingUser
 	}
 
-	err = auth.CheckPassword(password, user.Password)
+	err = uc.hasher.CheckPassword(password, user.Password)
 	if err != nil {
 		return "", appErr.ErrInvalidAuthFields
 	}
 
-	token, err := jwt.CreateToken(user.Id, user.Role)
+	token, err := uc.tokens.CreateToken(user.Id, user.Role)
 	if err != nil {
 		return "", appErr.ErrCreatingToken
 	}
